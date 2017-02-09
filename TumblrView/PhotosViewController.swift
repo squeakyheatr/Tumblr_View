@@ -16,6 +16,8 @@ class PhotosViewController: UIViewController, UITableViewDataSource, UITableView
     
     var posts: [NSDictionary] = []
     
+    var refreshControl = UIRefreshControl()
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         
@@ -51,7 +53,8 @@ class PhotosViewController: UIViewController, UITableViewDataSource, UITableView
                 self.PhotoTableView.reloadData()
         });
         task.resume()
-
+        refreshControl.addTarget(self, action: #selector(refreshControlAction(_:)), for: .valueChanged)
+        PhotoTableView.insertSubview(refreshControl, at: 0)
         
     }
 
@@ -67,7 +70,8 @@ class PhotosViewController: UIViewController, UITableViewDataSource, UITableView
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "PhotoCell") as! PhotoCell
-        
+       
+
         let post = posts[indexPath.row]
         if (post.value(forKeyPath: "photos") as? [NSDictionary]) != nil {
             let photos = post.value(forKeyPath: "photos") as? [NSDictionary]
@@ -84,8 +88,38 @@ class PhotosViewController: UIViewController, UITableViewDataSource, UITableView
         } else {
 
         }
+        
 
         return cell
+    }
+    
+    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        PhotoTableView.deselectRow(at: indexPath, animated: true)
+    }
+    
+    func refreshControlAction(_ refreshControl: UIRefreshControl){
+        
+        let url = URL(string:"https://api.tumblr.com/v2/blog/humansofnewyork.tumblr.com/posts/photo?api_key=Q6vHoaVm5L1u2ZAW1fqv3Jw48gFzYVg9P0vH0VHl3GVy6quoGV")
+        let request = URLRequest(url: url!)
+        let session = URLSession(configuration: .default, delegate: nil, delegateQueue: OperationQueue.main)
+        let task: URLSessionDataTask = session.dataTask(with: request) { (data: Data?, response: URLResponse?, error: Error?) in
+            
+            self.PhotoTableView.reloadData()
+            refreshControl.endRefreshing()
+        }
+        task.resume()
+    }
+    
+    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
+        let cell = sender as! UITableViewCell
+        var indexpath = PhotoTableView.indexPath(for: cell)
+        let post = posts[(indexpath?.row)!]
+        
+        let detailVC = segue.destination as! PhotoDetailViewController
+        
+        detailVC.post = post
+        
+        
     }
     
 
